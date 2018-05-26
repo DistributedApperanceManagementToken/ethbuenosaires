@@ -9,9 +9,11 @@ class ConnectedApp extends React.Component {
     observable: null,
     userAccount: '',
   }
+
   componentDidMount() {
     window.addEventListener('message', this.handleWrapperMessage)
   }
+  
   componentWillUnmount() {
     window.removeEventListener('message', this.handleWrapperMessage)
   }

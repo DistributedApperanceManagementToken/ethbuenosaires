@@ -4,6 +4,7 @@ import "@aragon/os/contracts/apps/AragonApp.sol";
 
 contract CollectiveWallet is AragonApp {
   /// Events
+  event CreateRequest( string description);
 
     struct Request {
         string objective;
@@ -24,7 +25,7 @@ contract CollectiveWallet is AragonApp {
     uint public minimumDeposit;
 
     modifier onlyOwners() {
-        require(owners[msg.sender]);
+        //require(owners[msg.sender]);
         _;
     }
 
@@ -54,6 +55,7 @@ contract CollectiveWallet is AragonApp {
         });
 
         requests.push(newRequest);
+        CreateRequest("ok");
     }
 
     function approveRequest(uint index) public onlyOwners {
@@ -102,9 +104,9 @@ contract CollectiveWallet is AragonApp {
         return requests.length;
     }
 
-    function getCurrentOwners() public view returns (address[]) {
+    function getCurrentOwners(uint index) public view returns (address) {
         currentOwners.push(msg.sender);
-        return currentOwners;
+        return currentOwners[index];
     }
 
     function getFutureOwners() public view returns (address[]) {

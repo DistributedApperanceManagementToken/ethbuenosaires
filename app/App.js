@@ -31,12 +31,11 @@ export default class App extends React.Component {
   getCurrentOwners = () => {
     new Promise(resolve => {
       this.props.app
-      .call('minimumDeposit')
+      .call('getCurrentOwners', 0)
       .first()
-      .map(value => parseInt(value, 10))
       .subscribe(resolve)
     }).then(value => {
-      this.setState({minimumDeposit: value})
+      this.setState({currentOwners: value},console.log(this.state.currentOwners));
   })};
 
 
@@ -64,6 +63,10 @@ export default class App extends React.Component {
     }));
   };
 
+  createRequest = () =>{
+    this.props.app.createRequest("ownership", "AA", 0, "0xb70C6104d8b54041cA4d7bEf25050EE940386cC9");
+  }
+
   componentDidMount = () => {
     this.getCurrentOwners();
     this.getFutureOwners();
@@ -78,8 +81,8 @@ export default class App extends React.Component {
                          <div style={{position: 'absolute', right: 15}}>
                             <Button mode="strong" style={{marginRight: 10}} onClick={() => this.getCurrentOwners()}>Request
                                 New Member</Button>
-                            <Button mode="strong" style={{marginRight: 10}} onClick={() => this.getRequestsCount()}>Request
-                                New Member</Button>
+                            <Button mode="strong" style={{marginRight: 10}} onClick={() => this.createRequest()}>Create
+                                New Request</Button>
 
                         </div>
                     </AppBar>
