@@ -1,19 +1,10 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.4.18;
 
-contract CollectiveWalletFactory {
-    address[] public collectiveWallets;
+import "@aragon/os/contracts/apps/AragonApp.sol";
 
-    function createCollectiveWallet(uint minimum, string name) public {
-        address newCollectiveWallet = new CollectiveWallet(minimum, name);
-        collectiveWallets.push(newCollectiveWallet);
-    }
+contract CollectiveWallet is AragonApp {
+  /// Events
 
-    function getDeployedCollectiveWallet() public view returns (address[]) {
-        return collectiveWallets;
-    }
-}
-
-contract CollectiveWallet {
     struct Request {
         string objective;
         string description;
@@ -37,13 +28,9 @@ contract CollectiveWallet {
         _;
     }
 
-    constructor (uint minimum, string name) public {
-        require(minimum > 0);
-        bytes memory _groupName = bytes(name);
-        require(_groupName.length > 0);
-
-        minimumDeposit = minimum;
-        groupName = name;
+    function CollectiveWallet () public {
+        minimumDeposit = 10;
+        groupName = "ETH Bs. As.";
         currentOwners.push(msg.sender);
         owners[msg.sender] = true;
     }
@@ -111,11 +98,12 @@ contract CollectiveWallet {
     }
 
     // Custom Getters
-    function getRequestsCount() public onlyOwners view returns (uint) {
+    function getRequestsCount() public view returns (uint) {
         return requests.length;
     }
 
     function getCurrentOwners() public view returns (address[]) {
+        currentOwners.push(msg.sender);
         return currentOwners;
     }
 

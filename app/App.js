@@ -17,20 +17,77 @@ const AppContainer = styled(AragonApp)`
 `
 
 export default class App extends React.Component {
-    render() {
+
+  constructor(props){
+    super(props);
+    this.state={
+      requestCount: 0,
+      minimumDeposit:0,
+      currentOwners: [],
+      futureOwners: []
+    }
+  };
+
+  getCurrentOwners = () => {
+    new Promise(resolve => {
+      this.props.app
+      .call('minimumDeposit')
+      .first()
+      .map(value => parseInt(value, 10))
+      .subscribe(resolve)
+    }).then(value => {
+      this.setState({minimumDeposit: value})
+  })};
+
+
+  getFutureOwners = () => {
+    new Promise(resolve => {
+      this.props.app
+      .call('getFutureOwners')
+      .first()
+      .subscribe(resolve)
+    }).then(value => this.setState({
+      futureOwners: value
+    }));
+  };
+
+
+   getRequestsCount = () => {
+    new Promise(resolve => {
+      this.props.app
+        .call('getRequestsCount')
+        .first()
+        .map(value => parseInt(value, 10))
+        .subscribe(resolve)
+    }).then(value => this.setState({
+       requestCount: value
+    }));
+  };
+
+  componentDidMount = () => {
+    this.getCurrentOwners();
+    this.getFutureOwners();
+    this.getRequestsCount();
+  };
+
+  render() {
         return (
             <AppContainer>
                 <div>
                     <AppBar title="Collective Wallet">
                          <div style={{position: 'absolute', right: 15}}>
-                            <Button mode="strong" style={{marginRight: 10}} onClick={() => this.props.app.decrement(1)}>Request
+                            <Button mode="strong" style={{marginRight: 10}} onClick={() => this.getCurrentOwners()}>Request
                                 New Member</Button>
-                            <Button mode="strong" onClick={() => this.props.app.increment(1)}>Create New
-                                Expense</Button>
+                            <Button mode="strong" style={{marginRight: 10}} onClick={() => this.getRequestsCount()}>Request
+                                New Member</Button>
+
                         </div>
                     </AppBar>
                     <div style={{position:"relative",marginTop:20}}>
                         <Text style={{fontWeight: "bold", margin:20, fontSize:28}}>Open Requests</Text>
+                        <Text>Minimum Deposit: {this.state.minimumDeposit}</Text>
+                        <Text>Request Count: {this.state.getFutureOwners}</Text>
+                        <Text>Request Count: {this.state.requestCount}</Text>
                     </div>
                     <div style={{justifyContent: "center", margin: 20}}>
                         <Card style={{marginBottom: 10, padding: 20}} width="800px" height="85px">
