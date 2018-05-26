@@ -45,7 +45,7 @@ contract CollectiveWallet {
         _;
     }
 
-    function CollectiveWallet(uint minimum, string name) public {
+    constructor (uint minimum, string name) public {
         require(minimum > 0);
 
         minimumContribution = minimum;
@@ -89,6 +89,7 @@ contract CollectiveWallet {
     function getOwnerList() public view returns (address[]) {
         return ownerList;
     }
+
 
     function contribute() public payable {
         require(msg.value > minimumContribution);
