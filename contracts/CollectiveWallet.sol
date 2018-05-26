@@ -50,11 +50,11 @@ contract CollectiveWallet {
 
     function deposit() public payable onlyOwners {
         // Check that the transaction value is higher than the
-        require(msg.value > minimumDeposit);
+        require(msg.value > 0);
     }
 
     function createRequest(string objective, string description, uint value, address recipient) public onlyOwners {
-        require(compare(objective, "tranfer") == 0 || compare(objective, "ownership") == 0);
+        require(compare(objective, "transfer") == 0 || compare(objective, "ownership") == 0);
 
         Request memory newRequest = Request({
             objective: objective,
@@ -110,18 +110,8 @@ contract CollectiveWallet {
         delete futureOwners[index];
     }
 
-    function getWalletSummary() public view returns (uint, uint, uint, uint, uint) {
-        return (
-          minimumDeposit,
-          this.balance,
-          requests.length,
-          currentOwners.length,
-          futureOwners.length
-        );
-    }
-
     // Custom Getters
-    function getRequestsCount() public view returns (uint) {
+    function getRequestsCount() public onlyOwners view returns (uint) {
         return requests.length;
     }
 
@@ -131,6 +121,24 @@ contract CollectiveWallet {
 
     function getFutureOwners() public view returns (address[]) {
         return futureOwners;
+    }
+
+    function requests(uint index) public view onlyOwners returns (
+        string, string, address, uint, address, bool, uint, bool){
+        // Check that is a valid aproved owner index
+        require(futureOwners.length > index);
+
+        Request storage request = requests[index];
+
+        return (
+            request.objective,
+            request.description,
+            request.requester,
+            request.value,
+            request.recipient,
+            request.complete,
+            request.approvalCount,
+            request.approvals[msg.sender]);
     }
 
 
