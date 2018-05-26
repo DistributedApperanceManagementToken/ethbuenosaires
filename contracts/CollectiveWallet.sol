@@ -1,21 +1,23 @@
-pragma solidity ^0.4.17;
+pragma solidity ^0.4.24;
 
-contract CollectWalletFactory {
-    address[] public deployedCollectiveWallet;
+contract CollectiveWalletFactory {
+    address[] public collectiveWallets;
 
     function createCollectiveWallet(uint minimum, string name) public {
         address newCollectiveWallet = new CollectiveWallet(minimum, name);
-        deployedCollectiveWallet.push(newCollectiveWallet);
+        collectiveWallets.push(newCollectiveWallet);
     }
 
     function getDeployedCollectiveWallet() public view returns (address[]) {
-        return deployedCollectiveWallet;
+        return collectiveWallets;
     }
 }
 
 contract CollectiveWallet {
     struct Request {
+        string objective;
         string description;
+        address requester;
         uint value;
         address recipient;
         bool complete;
@@ -23,22 +25,12 @@ contract CollectiveWallet {
         mapping(address => bool) approvals;
     }
 
-    struct OwnershipRequest {
-        address newOwner;
-        string description;
-        address requester;
-        bool complete;
-        uint approvalCount;
-        mapping(address => bool) approvals;
-    }
-
-    Request[] public requests;
-    OwnershipRequest[] public ownersRequest;
-    uint public minimumContribution;
     string public groupName;
+    address[] public currentOwners;
     mapping(address => bool) public owners;
-    mapping(address => bool) public requestedOwners;
-    address[] public ownerList;
+    address[] public futureOwners;
+    Request[] public requests;
+    uint public minimumDeposit;
 
     modifier onlyOwners() {
         require(owners[msg.sender]);
@@ -47,70 +39,40 @@ contract CollectiveWallet {
 
     constructor (uint minimum, string name) public {
         require(minimum > 0);
+        bytes memory _groupName = bytes(name);
+        require(_groupName.length > 0);
 
-        minimumContribution = minimum;
+        minimumDeposit = minimum;
         groupName = name;
-        ownerList.push(msg.sender);
+        currentOwners.push(msg.sender);
         owners[msg.sender] = true;
     }
 
-    function addOwnerRequest(string description, address newOwner) public onlyOwners {
-        require(!owners[newOwner]);
-        require(!requestedOwners[newOwner]);
-
-        OwnershipRequest memory ownershipRequest = OwnershipRequest({
-           description: description,
-           newOwner: newOwner,
-           requester: msg.sender,
-           complete: false,
-           approvalCount: 0
-        });
-
-        ownersRequest.push(ownershipRequest);
-        requestedOwners[newOwner] = true;
+    function deposit() public payable onlyOwners {
+        // Check that the transaction value is higher than the
+        require(msg.value > minimumDeposit);
     }
 
-    function approveOwnershipRequest(uint index) public onlyOwners {
-        OwnershipRequest storage ownerRequest = ownersRequest[index];
+    function createRequest(string objective, string description, uint value, address recipient) public onlyOwners {
+        require(compare(objective, "tranfer") == 0 || compare(objective, "ownership") == 0);
 
-        require(!ownerRequest.approvals[msg.sender]);
-        require(!ownerRequest.complete);
-
-        ownerRequest.approvals[msg.sender] = true;
-        ownerRequest.approvalCount++;
-
-        if (ownerRequest.approvalCount > (ownerList.length / 2)){
-            ownerRequest.complete = true;
-            owners[ownerRequest.newOwner] = true;
-            ownerList.push(ownerRequest.newOwner);
-        }
-    }
-
-    function getOwnerList() public view returns (address[]) {
-        return ownerList;
-    }
-
-
-    function contribute() public payable {
-        require(msg.value > minimumContribution);
-    }
-
-    function createRequest(string description, uint value, address recipient) public onlyOwners {
         Request memory newRequest = Request({
-           description: description,
-           value: value,
-           recipient: recipient,
-           complete: false,
-           approvalCount: 0
+            objective: objective,
+            description: description,
+            value: value,
+            recipient: recipient,
+            requester: msg.sender,
+            complete: false,
+            approvalCount: 0
         });
 
         requests.push(newRequest);
     }
 
-    function approveRequest(uint index) public {
+    function approveRequest(uint index) public onlyOwners {
         Request storage request = requests[index];
 
-        require(owners[msg.sender]);
+        // Check that current Owner do not have a vote registered
         require(!request.approvals[msg.sender]);
 
         request.approvals[msg.sender] = true;
@@ -120,14 +82,76 @@ contract CollectiveWallet {
     function finalizeRequest(uint index) public onlyOwners {
         Request storage request = requests[index];
 
-        require(request.approvalCount > (ownerList.length / 2));
+        require(request.approvalCount > (currentOwners.length / 2));
         require(!request.complete);
 
-        request.recipient.transfer(request.value);
+        if (compare(request.objective, "transfer") == 0) {
+            request.recipient.transfer(request.value);
+        } else {
+            owners[request.recipient] = true;
+            futureOwners.push(request.recipient);
+        }
         request.complete = true;
     }
 
+    function aceptOwnership(uint index) public payable {
+        // Check that is a valid aproved owner index
+        require(futureOwners.length > index);
+
+        // Check that only the approved adress can acept the ownership
+        require(futureOwners[index] == msg.sender);
+
+        // Check that the future owner sent the minimum
+        require(msg.value >= minimumDeposit);
+
+        address newOwner = futureOwners[index];
+        owners[newOwner] = true;
+        currentOwners.push(newOwner);
+        delete futureOwners[index];
+    }
+
+    function getWalletSummary() public view returns (uint, uint, uint, uint, uint) {
+        return (
+          minimumDeposit,
+          this.balance,
+          requests.length,
+          currentOwners.length,
+          futureOwners.length
+        );
+    }
+
+    // Custom Getters
     function getRequestsCount() public view returns (uint) {
         return requests.length;
+    }
+
+    function getCurrentOwners() public view returns (address[]) {
+        return currentOwners;
+    }
+
+    function getFutureOwners() public view returns (address[]) {
+        return futureOwners;
+    }
+
+
+    // Utility functions
+    function compare(string _a, string _b) internal pure returns (int) {
+        bytes memory a = bytes(_a);
+        bytes memory b = bytes(_b);
+        uint minLength = a.length;
+
+        if (b.length < minLength) minLength = b.length;
+
+        for (uint i = 0; i < minLength; i ++)
+            if (a[i] < b[i])
+                return -1;
+            else if (a[i] > b[i])
+                return 1;
+        if (a.length < b.length)
+            return -1;
+        else if (a.length > b.length)
+            return 1;
+        else
+            return 0;
     }
 }
