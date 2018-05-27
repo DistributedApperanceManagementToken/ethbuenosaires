@@ -4,15 +4,15 @@ const app = new Aragon()
 
 const initialState = {
   count: 0,
-  description: ''
+  requestCount: 0
 }
+
 app.store(async (state, event) => {
   if (state === null) state = initialState;
   switch (event.event) {
     case "CreateRequest":
       let requestCount =  await getCreateState();
-      console.log(requestCount);
-      return {description: requestCount};
+      return {requestCount: requestCount};
     default:
       return state;
   }

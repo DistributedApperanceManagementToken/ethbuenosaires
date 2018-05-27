@@ -104,9 +104,8 @@ contract CollectiveWallet is AragonApp {
         return requests.length;
     }
 
-    function getCurrentOwners(uint index) public view returns (address) {
-        currentOwners.push(msg.sender);
-        return currentOwners[index];
+    function getCurrentOwners() public view returns (address[]) {
+        return currentOwners;
     }
 
     function getFutureOwners() public view returns (address[]) {

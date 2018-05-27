@@ -9,6 +9,7 @@ import {
 } from '@aragon/ui'
 import Aragon, {providers} from '@aragon/client'
 import styled from 'styled-components'
+import { Button as SButton } from 'semantic-ui-react'
 
 const AppContainer = styled(AragonApp)`
   display: block;
@@ -16,7 +17,7 @@ const AppContainer = styled(AragonApp)`
   justify-content: flex-start;
 `
 
-export default class App extends React.Component {
+class App extends React.Component {
 
   constructor(props){
     super(props);
@@ -24,20 +25,20 @@ export default class App extends React.Component {
       requestCount: 0,
       minimumDeposit:0,
       currentOwners: [],
-      futureOwners: []
+      futureOwners: [],
+      request:false
     }
   };
 
   getCurrentOwners = () => {
     new Promise(resolve => {
       this.props.app
-      .call('getCurrentOwners', 0)
+      .call('getCurrentOwners')
       .first()
       .subscribe(resolve)
     }).then(value => {
       this.setState({currentOwners: value},console.log(this.state.currentOwners));
   })};
-
 
   getFutureOwners = () => {
     new Promise(resolve => {
@@ -50,6 +51,16 @@ export default class App extends React.Component {
     }));
   };
 
+  getRequest = () => {
+    new Promise(resolve => {
+      this.props.app
+      .call('requests')
+      .first()
+      .subscribe(resolve)
+    }).then(value => this.setState({
+      requests: value
+    }));
+  };
 
    getRequestsCount = () => {
     new Promise(resolve => {
@@ -58,9 +69,9 @@ export default class App extends React.Component {
         .first()
         .map(value => parseInt(value, 10))
         .subscribe(resolve)
-    }).then(value => this.setState({
-       requestCount: value
-    }));
+    }).then(value => {
+      this.setState({requestCount: value});
+    });
   };
 
   createRequest = () =>{
@@ -68,14 +79,18 @@ export default class App extends React.Component {
   }
 
   componentDidMount = () => {
-    this.getCurrentOwners();
-    this.getFutureOwners();
-    this.getRequestsCount();
+    console.log('componentDidMount');
+    setTimeout(this.getRequestsCount, 5000);
   };
 
+  componentWillReceiveProps(nextProps){
+    console.log("NEXT PROPS");
+  }
   render() {
+        console.log(this.state);
         return (
-            <AppContainer>
+
+            <AppContainer observable={this.observable}>
                 <div>
                     <AppBar title="Collective Wallet">
                          <div style={{position: 'absolute', right: 15}}>
@@ -83,14 +98,14 @@ export default class App extends React.Component {
                                 New Member</Button>
                             <Button mode="strong" style={{marginRight: 10}} onClick={() => this.createRequest()}>Create
                                 New Request</Button>
-
                         </div>
                     </AppBar>
                     <div style={{position:"relative",marginTop:20}}>
+
                         <Text style={{fontWeight: "bold", margin:20, fontSize:28}}>Open Requests</Text>
                         <Text>Minimum Deposit: {this.state.minimumDeposit}</Text>
                         <Text>Request Count: {this.state.getFutureOwners}</Text>
-                        <Text>Request Count: {this.state.requestCount}</Text>
+                        <Text>Props: {this.props.requestCount}</Text>
                     </div>
                     <div style={{justifyContent: "center", margin: 20}}>
                         <Card style={{marginBottom: 10, padding: 20}} width="800px" height="85px">
@@ -107,16 +122,16 @@ export default class App extends React.Component {
                                 <Text>Addresss: 0x182hb23h2h3j2h3j2</Text>
                             </div>
                         </Card>
+                        <SButton primary>Primary</SButton>
                     </div>
                 </div>
             </AppContainer>
         )
     }
+
 }
 
-const ObservedCount = observe(
-    (state$) => state$,
-    {count: 0}
-)(
-    ({count}) => <Text.Block style={{textAlign: 'center'}} size='xxlarge'>{count}</Text.Block>
-)
+export default observe(
+  observable => observable.map(state => ({ ...state })),
+  {requestCount: 0}
+)(App)
