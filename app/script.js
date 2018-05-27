@@ -12,7 +12,13 @@ app.store(async (state, event) => {
   switch (event.event) {
     case "CreateRequest":
       let requestCount =  await getCreateState();
-      return {requestCount: requestCount};
+      return {requestCount: requestCount, approvedRequest: false};
+    case "ApproveRequest":
+      return {requestCount: await getCreateState(), approvedRequest: true};
+    case "FinalizeRequest":
+      return {requestCount: await getCreateState()};
+    case "Deposit":
+      return {balance: await getWalletSummary()};
     default:
       return state;
   }
@@ -26,3 +32,13 @@ function getCreateState(){
     .map(value=> parseInt(value,10))
     .subscribe(resolve)
 })};
+
+getWalletSummary = () => {
+  new Promise(resolve => {
+    this.props.app
+    .call('getWalletSumary')
+    .first()
+    .map(value => parseInt(value[1],10))
+    .subscribe(resolve)
+  })
+};
