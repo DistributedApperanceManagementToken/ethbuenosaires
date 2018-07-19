@@ -9,7 +9,7 @@ DApp to share expenses and make transactions with a group of people. It has a vo
 * Finalize expense request (transaction).
 * Wallet summary.
 
-##Pending Features
+## Pending Features
 * Different powers in the votes. Example, superpower for one person in a certain period. 
 * Close group and divide the money evenly.
 * Multiple Groups.
