@@ -2,13 +2,7 @@ pragma solidity 0.4.18;
 
 import "@aragon/os/contracts/apps/AragonApp.sol";
 
-contract CollectiveWallet is AragonApp {
-  /// Events
-  event CreateRequest(string description);
-  event ApproveRequest(uint index);
-  event FinalizeRequest(uint index);
-  event Deposit(uint value);
-
+contract CollectiveWalletApp is AragonApp {
     struct Request {
         string objective;
         string description;
@@ -20,35 +14,36 @@ contract CollectiveWallet is AragonApp {
         mapping(address => bool) approvals;
     }
 
-    string public groupName= "ETH Bs. As.";
+    bytes32 constant public INCREMENT_ROLE = keccak256("INCREMENT_ROLE");
+    event CreateRequest(address indexed entity, string objective, string description, uint value, address recipient);
+    event GetCurrentOwners(address indexed entity);
+
+    string public groupName;
     address[] public currentOwners;
     mapping(address => bool) public owners;
     address[] public futureOwners;
     Request[] public requests;
-    uint public minimumDeposit = 10;
+    uint public minimumDeposit;
 
     modifier onlyOwners() {
-        //require(owners[msg.sender]);
-//        if (!owners[msg.sender]) {
-//          owners[msg.sender] = true;
-//          currentOwners.push(msg.sender);
-//        }
-       _;
+//        require(owners[msg.sender]);
+        _;
     }
 
-    function initilize() public {
-        minimumDeposit = 10;
-        groupName = "ETH Bs. As.";
+    function initialize() public onlyInit {
+        minimumDeposit = 100;
+        groupName = "Eth Bs. As. collective wallet";
         currentOwners.push(msg.sender);
         owners[msg.sender] = true;
     }
 
-    function deposit(uint amount) public payable {
+
+    function deposit() public payable onlyOwners {
         // Check that the transaction value is higher than the
-        Deposit(msg.value);
+        require(msg.value > 0);
     }
 
-    function createRequest(string objective, string description, uint value, address recipient) public onlyOwners {
+    function createRequest(string objective, string description, uint value, address recipient) public onlyOwners auth(INCREMENT_ROLE) {
         require(compare(objective, "transfer") == 0 || compare(objective, "ownership") == 0);
 
         Request memory newRequest = Request({
@@ -59,10 +54,9 @@ contract CollectiveWallet is AragonApp {
             requester: msg.sender,
             complete: false,
             approvalCount: 0
-        });
+            });
 
         requests.push(newRequest);
-        CreateRequest("ok");
     }
 
     function approveRequest(uint index) public onlyOwners {
@@ -73,7 +67,6 @@ contract CollectiveWallet is AragonApp {
 
         request.approvals[msg.sender] = true;
         request.approvalCount++;
-        ApproveRequest(index);
     }
 
     function finalizeRequest(uint index) public onlyOwners {
@@ -89,27 +82,39 @@ contract CollectiveWallet is AragonApp {
             currentOwners.push(request.recipient);
         }
         request.complete = true;
-        FinalizeRequest(index);
+    }
+
+    function acceptOwnership(uint index) public payable {
+        // Check that is a valid approved owner index
+        require(futureOwners.length > index);
+
+        // Check that only the approved address can accept the ownership
+        require(futureOwners[index] == msg.sender);
+
+        // Check that the future owner sent the minimum
+        require(msg.value >= minimumDeposit);
+
+        address newOwner = futureOwners[index];
+        owners[newOwner] = true;
+        currentOwners.push(newOwner);
+        delete futureOwners[index];
     }
 
     // Custom Getters
-    function getRequestsCount() public view returns (uint) {
+    function getRequestsCount() public onlyOwners view returns (uint) {
         return requests.length;
-    }
-
-    function getWalletSummary() public view returns (string, uint, uint) {
-      return (
-          groupName,
-          this.balance,
-          minimumDeposit);
     }
 
     function getCurrentOwners() public view returns (address[]) {
         return currentOwners;
     }
 
-    function requests(uint index) public view onlyOwners returns (
-        string, string, address, uint, address, bool, uint, uint, bool){
+    function getFutureOwners() public view returns (address[]) {
+        return futureOwners;
+    }
+
+    function getRequest(uint index) public view returns (
+        string, string, address, uint, address, bool, uint, bool){
         // Check that is a valid aproved owner index
         require(requests.length > index);
 
@@ -123,7 +128,6 @@ contract CollectiveWallet is AragonApp {
             request.recipient,
             request.complete,
             request.approvalCount,
-            currentOwners.length,
             request.approvals[msg.sender]);
     }
 

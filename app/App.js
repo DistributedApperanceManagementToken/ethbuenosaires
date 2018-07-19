@@ -70,7 +70,7 @@ class App extends React.Component {
     }).
     then(value => {
       let array = this.state.request;
-      array.push(value);
+      array.push(value);``
       this.setState({request:array});
       console.log("ARREGLO",array);
     });
@@ -114,7 +114,6 @@ class App extends React.Component {
   renderList = (requestCount, approvedRequest) =>{
 
      if (requestCount && requestCount > this.state.requestCount) {
-       this.setState({request:[]});
        for (let i=0; i<requestCount; i++) {
          this.getRequest(i);
        }
